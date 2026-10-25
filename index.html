@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Candles — Mint</title>
+<meta name="description" content="1,111 pixel candlesticks on Robinhood Chain: green for the bulls, red for the bears, and rare gold. Five chart shapes, every one lit.">
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABK0lEQVR42u1YOw6CUBB8a2jExkTiMbT2Mh7BGOUYaKz0GtTamlir1JQWBhMbsFxL/+GzwBMy05EQdngzu5N9SgEAAAjAzCz9RkNSfHWUk2joPkVD8veu+3gmIirtBN6LZS0uxvIgN2Fm5qbZfikeRVcq3YShN1ShN1SV7gIQAAEQoLQDJy3iBlSiMArPi0zFW91xvml4O8wTvbddn4rzQHOw12vC267/INOb6O2CpJLUV4LKDSIOHM5VgjQm5MBh1Zl+kDAkEqQxIVk2caCYLJu0SfBeHF0glkDLJHyWQMskrPQgQhwjjmMJfEur0rrgV1qV1gVk2aQus6+BkUccJ5IgrrgkjrEbijajjWPXdzlVkms69kfM/oglJGFCEACB/78lK/q6HgAAALgDFleHDXYxV6QAAAAASUVORK5CYII=">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090d; --panel: #0d1118; --panel2: #121823; --line: #1c2433; --line2: #273246; --text: #e6edf6; --muted: #7d8aa0;
+    --up: #28d678; --down: #f44254; --gold: #f6c62e; --blue: #4d8dff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: clamp(14px, .9vw, 17px); line-height: 1.5; overflow-x: clip;
+    background-image: radial-gradient(#141b27 1px, transparent 1px); background-size: 22px 22px; }
+  .px { font-family: "Silkscreen", monospace; }
+  img.candle { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+  button { font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--line2); background: var(--panel2); padding: 8px 14px; border-radius: 4px; }
+  button:hover { border-color: var(--muted); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  [hidden] { display: none !important; }
+  #bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .wrap { max-width: 1880px; margin: 0 auto; padding: 0 clamp(14px, 3vw, 60px); }
+
+  /* top bar */
+  header { position: sticky; top: 0; z-index: 6; background: rgba(7, 9, 13, .94); border-bottom: 1px solid var(--line); backdrop-filter: blur(6px); }
+  header .wrap { display: flex; align-items: center; gap: 18px; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: "Silkscreen", monospace; font-size: clamp(16px, 1.3vw, 22px); }
+  .logo img { height: 40px; width: auto; }
+  .market { display: inline-flex; align-items: center; gap: 8px; font-size: .78em; letter-spacing: 1px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); }
+  .market i { width: 8px; height: 8px; border-radius: 50%; background: var(--down); }
+  .market.open { color: var(--up); border-color: color-mix(in srgb, var(--up) 45%, transparent); }
+  .market.open i { background: var(--up); box-shadow: 0 0 10px var(--up); animation: blink 1.4s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  nav { display: flex; gap: 2px; margin-left: auto; flex-wrap: wrap; }
+  nav button { background: none; border-color: transparent; color: var(--muted); }
+  nav button:hover { color: var(--text); background: var(--panel2); }
+  #connect { background: var(--up); color: #04120a; border: 0; font-weight: 700; }
+
+  /* ticker tape */
+  .tape { border-bottom: 1px solid var(--line); background: #05070a; overflow: hidden; white-space: nowrap; font-size: .82em; padding: 7px 0; }
+  .tape div { display: inline-block; padding-left: 100%; }
+  .tape span { margin-right: 36px; color: var(--muted); }
+  .tape b.up { color: var(--up); } .tape b.down { color: var(--down); } .tape b.gold { color: var(--gold); }
+  @keyframes tape { to { transform: translateX(-100%); } }
+  @media (prefers-reduced-motion: no-preference) { .tape div { animation: tape 45s linear infinite; } }
+
+  #demo { margin: 14px 0 0; padding: 8px 12px; border: 1px dashed var(--gold); color: var(--gold); border-radius: 4px; font-size: .85em; }
+
+  /* headline strip */
+  .headline { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: clamp(18px, 2.4vw, 40px) 0 clamp(14px, 1.6vw, 26px); }
+  h1 { font-family: "Silkscreen", monospace; font-weight: 700; font-size: clamp(30px, 4.4vw, 84px); line-height: 1; margin: 0; letter-spacing: -1px; }
+  h1 .u { color: var(--up); } h1 .d { color: var(--down); } h1 .g { color: var(--gold); }
+  .headline p { margin: 12px 0 0; color: var(--muted); max-width: 58ch; font-size: 1.05em; }
+  .stats { display: flex; gap: clamp(16px, 2.4vw, 46px); }
+  .stats div { text-align: right; }
+  .stats b { display: block; font-family: "Silkscreen", monospace; font-size: clamp(18px, 1.7vw, 32px); }
+  .label { font-size: .72em; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+
+  /* terminal: chart + order panel */
+  .terminal { display: grid; gap: 14px; }
+  .orders { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .pair { font-weight: 700; display: flex; align-items: baseline; gap: 12px; }
+  .pair small { color: var(--muted); font-weight: 400; }
+  #chg { font-weight: 700; }
+  .tf { display: flex; gap: 4px; }
+  .tf button { padding: 3px 9px; font-size: .8em; background: none; color: var(--muted); }
+  .tf button.on { background: var(--panel2); color: var(--text); border-color: var(--line2); }
+  .chartbox { position: relative; }
+  #chart { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .ohlc { position: absolute; left: 14px; top: 10px; font-size: .8em; color: var(--muted); pointer-events: none; }
+  .ohlc b { color: var(--text); font-weight: 500; }
+
+  .order { --c: var(--up); display: flex; flex-direction: column; border-top: 3px solid var(--c); }
+  .order.flash { box-shadow: 0 0 0 2px var(--c), 0 0 40px -10px var(--c); }
+  .order-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .order-head b { font-family: "Silkscreen", monospace; font-size: 1.15em; color: var(--c); }
+  .order-body { padding: 16px; display: grid; gap: 12px; flex: 1; }
+  .showcase { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+  .showcase .frame { width: clamp(110px, 8vw, 150px); aspect-ratio: 32 / 72; border: 1px solid var(--line2); border-radius: 6px; display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--c) 22%, transparent), transparent 70%), #080b11; }
+  .showcase .frame img { width: 86%; height: auto; }
+  .showcase h2 { font-family: "Silkscreen", monospace; font-size: clamp(24px, 2vw, 38px); margin: 0; color: var(--c); }
+  .showcase p { margin: 6px 0 0; color: var(--muted); font-size: .9em; }
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: .92em; }
+  .kv b { font-weight: 700; }
+  .amount { display: flex; align-items: center; gap: 6px; }
+  .amount button { width: 32px; height: 32px; padding: 0; }
+  .amount input { width: 54px; height: 32px; text-align: center; font: inherit; color: var(--text); background: #080b11; border: 1px solid var(--line2); border-radius: 4px; }
+  .quick { display: flex; gap: 6px; }
+  .quick button { padding: 3px 9px; font-size: .8em; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 4px; }
+  .total b { font-family: "Silkscreen", monospace; font-size: clamp(18px, 1.5vw, 26px); color: var(--c); }
+  .buy { width: 100%; padding: 15px; border: 0; border-radius: 6px; background: var(--c); color: #071008; font-weight: 700; font-size: 1.05em; letter-spacing: 1px; }
+  .buy:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 0 26px -6px var(--c); }
+  .bar { height: 6px; background: #080b11; border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--c); }
+
+  section { margin-top: clamp(30px, 3vw, 56px); scroll-margin-top: 110px; }
+  .sec-title { display: flex; align-items: baseline; gap: 14px; margin: 0 0 14px; }
+  .sec-title h3 { font-family: "Silkscreen", monospace; font-size: clamp(18px, 1.4vw, 26px); margin: 0; }
+  .sec-title span { color: var(--muted); font-size: .85em; }
+
+  /* market watchlist */
+  table { width: 100%; border-collapse: collapse; }
+  .tablewrap { overflow-x: auto; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-weight: 400; font-size: .75em; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--panel2); }
+  td.asset { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+  td.asset img { height: 40px; width: auto; }
+  .pill { font-size: .78em; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); }
+  .minibar { width: 120px; height: 5px; background: #080b11; border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+  .minibar i { display: block; height: 100%; }
+
+  /* shapes */
+  .shapes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .shape { padding: 14px; text-align: center; }
+  .shape .trio { display: flex; justify-content: center; gap: 4px; height: 120px; align-items: end; }
+  .shape .trio img { height: 100%; width: auto; }
+  .shape b { display: block; margin-top: 10px; font-family: "Silkscreen", monospace; font-size: 1.05em; }
+  .shape p { margin: 4px 0 0; color: var(--muted); font-size: .82em; }
+
+  /* portfolio */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .own { padding: 12px; text-align: center; }
+  .own img { height: 140px; width: auto; margin: 0 auto; }
+  .own b { display: block; margin-top: 8px; font-size: .85em; }
+  .empty { color: var(--muted); padding: 18px; }
+
+  details { border-bottom: 1px solid var(--line); padding: 14px 4px; }
+  summary { cursor: pointer; font-weight: 700; }
+  details p { margin: 8px 0 0; color: var(--muted); max-width: 90ch; }
+
+  .admin { padding: 18px; border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+  .admin .row2 { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .admin .big { font-family: "Silkscreen", monospace; font-size: clamp(20px, 1.6vw, 30px); }
+  .admin .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .admin .btns button { border: 0; font-weight: 700; padding: 12px 18px; color: #071008; }
+  #a-launch { background: var(--up); } #a-stop { background: var(--down); } #a-withdraw { background: var(--gold); }
+  .note { color: var(--muted); font-size: .85em; margin: 10px 0 0; }
+
+  footer { margin: 50px 0 30px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: .85em; }
+  footer a { color: inherit; }
+  #toast { position: fixed; right: 18px; bottom: 18px; background: var(--panel2); border: 1px solid var(--line2); border-left: 4px solid var(--up); padding: 12px 16px; border-radius: 6px; max-width: min(420px, calc(100vw - 36px)); display: none; z-index: 9; }
+
+  @media (max-width: 1100px) { .orders { grid-template-columns: 1fr; } .shapes { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .shapes { grid-template-columns: repeat(2, 1fr); } .stats { width: 100%; justify-content: space-between; } .stats div { text-align: left; } nav { margin-left: 0; } }
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<header><div class="wrap">
+  <div class="logo"><img class="candle" id="logo" alt="">PIXEL CANDLES</div>
+  <span class="market" id="market"><i></i><span id="market-text">MARKET CLOSED</span></span>
+  <nav>
+    <button type="button" data-to="trade">Trade</button><button type="button" data-to="markets">Markets</button><button type="button" data-to="shapes">Shapes</button><button type="button" data-to="portfolio">Portfolio</button><button type="button" data-to="faq">FAQ</button><button type="button" data-to="admin" id="nav-admin" hidden>Admin</button>
+  </nav>
+  <button type="button" id="connect">Connect wallet</button>
+</div></header>
+<div class="tape" aria-hidden="true"><div id="tape"></div></div>
+
+<div class="wrap">
+  <div id="demo">DEMO MODE — no contract connected yet. Mints here are pretend and saved only in this browser.</div>
+
+  <div class="headline">
+    <div>
+      <h1><span class="u">Buy</span> the <span class="d">dip</span>.<br>Light the <span class="g">candle</span>.</h1>
+      <p>1,111 pixel candlesticks on Robinhood Chain. Green for the bulls, red for the bears, rare gold for the lucky. Every one is lit, and every one has a chart shape.</p>
+    </div>
+    <div class="stats">
+      <div><span class="label">Minted</span><b id="s-total">0 / 1111</b></div>
+      <div><span class="label">Floor mint</span><b id="s-floor">–</b></div>
+      <div><span class="label">Gold left</span><b id="s-gold">111</b></div>
+    </div>
+  </div>
+
+  <div class="terminal" id="trade">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="pair">CANDLE / ETH <span id="chg">+0.00%</span> <small>pixel index · not a real price</small></div>
+        <div class="tf" id="tf"><button type="button" data-ms="60">1m</button><button type="button" data-ms="110" class="on">5m</button><button type="button" data-ms="200">1h</button><button type="button" data-ms="320">1d</button></div>
+      </div>
+      <div class="chartbox">
+        <div class="ohlc">O <b id="o">–</b> H <b id="h">–</b> L <b id="l">–</b> C <b id="c">–</b></div>
+        <canvas id="chart" width="560" height="150" role="img" aria-label="Animated pixel candlestick chart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="orders" id="orders" style="margin-top: 14px"></div>
+
+  <section id="markets">
+    <div class="sec-title"><h3>Markets</h3><span>Pick a row to jump to its buy card.</span></div>
+    <div class="panel tablewrap"><table>
+      <thead><tr><th>Asset</th><th>Rarity</th><th>Price</th><th>Minted</th><th>Supply</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section id="shapes">
+    <div class="sec-title"><h3>Five shapes</h3><span>Fixed by the token number, so you see yours the moment you mint.</span></div>
+    <div class="shapes" id="shape-list"></div>
+  </section>
+
+  <section id="portfolio">
+    <div class="sec-title"><h3>Portfolio</h3><span id="own-n">0 candles</span></div>
+    <div class="grid" id="owned"></div>
+  </section>
+
+  <section id="faq">
+    <div class="sec-title"><h3>FAQ</h3></div>
+    <details open><summary>What is Pixel Candles?</summary><p>1,111 pixel-art candlesticks on Robinhood Chain: 500 green, 500 red and 111 rare gold. Each one is a chart candle and a real candle at once, flame included.</p></details>
+    <details><summary>What shape will I get?</summary><p>One of five chart shapes: Classic, Hammer, Star, Doji or Marubozu. The shape is decided by the candle's token number, so you see it as soon as you mint.</p></details>
+    <details><summary>Is the chart a real price?</summary><p>No. The chart at the top is decoration that prints pixel candles. Mint prices are fixed and read from the contract.</p></details>
+    <details><summary>What do I need to mint?</summary><p>A browser wallet with ETH on Robinhood Chain, enough for the mint price plus a small network fee. Up to 10 per transaction.</p></details>
+    <details><summary>Where does the money go?</summary><p>Every mint payment goes to the creator. Mints are final and there are no refunds.</p></details>
+    <details><summary>Can I lose money?</summary><p>Yes. A mint cannot be refunded, and a candle may later be worth less than you paid, or nothing. Only spend what you can afford to lose.</p></details>
+  </section>
+
+  <section id="admin" hidden>
+    <div class="sec-title"><h3>Admin</h3><span>Only the owner wallet sees this.</span></div>
+    <div class="panel admin">
+      <div class="row2"><div><div class="label">Mint is</div><div class="big" id="a-state">CLOSED</div></div>
+        <div class="btns"><button type="button" id="a-launch">Launch mint</button><button type="button" id="a-stop">Stop mint</button></div></div>
+      <div class="row2" style="border: 0"><div><div class="label">Mint money in the contract</div><div class="big" id="a-held">–</div></div>
+        <div class="btns"><button type="button" id="a-withdraw">Withdraw all to my wallet</button></div></div>
+      <p class="note">Each press is a small paid transaction from your wallet. Withdraw sends everything the contract holds to <b id="a-wallet"></b>; nothing is ever locked.</p>
+    </div>
+  </section>
+
+  <footer><span>Pixel Candles · on Robinhood Chain · not financial advice, just pixels</span><span id="contract-link"></span></footer>
+</div>
+<div id="toast"></div>
+
+<script>
+// ---- Settings: keep these the same as the contract ----
+const CONFIG = {
+  contractAddress: "0xe5Fca86Fb1E030F116ac1c90B812D15B68F65F7d", // PixelCandles on Robinhood Chain (empty = demo mode)
+  adminWallet: "0xeD23eb42E8D2a707596AbF103e4E068f325B4991", // only this wallet sees the Admin panel and receives withdrawals
+  chainId: 4663,
+  chainName: "Robinhood Chain",
+  rpcUrl: "https://rpc.mainnet.chain.robinhood.com",
+  explorer: "https://robinhoodchain.blockscout.com",
+  symbol: "ETH",
+  maxPerMint: 10,
+  levels: [
+    { name: "GREEN", key: "GREEN", price: 0.0002, cap: 500, firstId: 0, rarity: "Common", css: "var(--up)", tag: "The up candle. For the bulls." },
+    { name: "RED", key: "RED", price: 0.0005, cap: 500, firstId: 500, rarity: "Common", css: "var(--down)", tag: "The down candle. For the bears." },
+    { name: "GOLD", key: "GOLD", price: 0.0015, cap: 111, firstId: 1000, rarity: "Rare · 111", css: "var(--gold)", tag: "The rare one. Gold wax, blue flame, sparkles." },
+  ],
+};
+const IMGS = {"GREEN": [["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA/0lEQVR42mNgGAWjYBSMAgrA/3fT/g+o5f+nafyn1BFMQzbo/0/T+P/CQYPiUCArBBiFshjx8ekXEtM0KE6EZLuci0sAxfJv3z4w0j0RpjyawJDyaALDkM4Fow4YdcCoAxhJLXBIBYQKKBZiDOn5uo4sy0u4gwiqYSHFwEnXdxGl7s22a7RLA9c12wc2EWper4Sz8zTdBjYXEBslwzcKRmZJiBwFA5IIkaNgQBLhoIqC0VwwIIkQOQoGJBGOFkSj1fFodTyaC0ar42HXNySqZ1TXO4Fh2HZOGSgZpst7s+B/3psF/ylx5GgiHHXAqAMG/ygZrYfrR8EoGAWjYBQAANfwbERy/IT0AAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABB0lEQVR42mNgGAWjYBSMAjLB/3fT/lPDHKbB4AiyLP4/TQOCKXQERSHwchUDA8OKSRSFBFkOYBTKYsTHp19UTNOgOA2Q7XIuLgEUy799+8BI9zSQ8mgCQ8qjCQOXDQe8HBh1wKgDhoUDGEktcEgFhAooFmIM6fm6jizLS7iDCKphIcXASdd3EaXuzbZrtEsD1zXbBzYRal6vhLPzNN0GNhcQGyXDNwpGZkmIHAUDkgiRo2BAEuGgioLRXDAgiRA5CgYkEY4WRKPV8Wh1PJoLRqvjYdc3JKpnVNc7gWHYdk4ZKBmmy3uz4H/emwX/KXHkaCIcdcCoAwb/KBmth+tHwSgYBaNgFAAAunJqCJ4vQzUAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABBElEQVR42mNgGAWjYBSMAgrB/3fT/lOin2kgLafY5/+naUAwBQ5hItvnKyYxvFxFuUfIcgCjUBYjPj79omGaBsVpgGyXc3EJoFj+7dsHRrrngpRHExhSHk1gGLBsSA0w6oBRB4w6gJHUAodUQKiAYiHGkJ6v68iyvIQ7iKAaFlIMnHR9F1Hq3my7Rrs0cF2zfWAToeb1Sjg7T9NtYHMBsVEyfKNgZJaEyFEwIIkQOQoGJBEOqigYzQUDkgiRo2BAEuFoQTRaHY9Wx6O5YLQ6HnZ9Q6J6RnW9ExiGbeeUgZJhurw3C/7nvVnwnxJHjibCUQeMOmDwj5LRerh+FIyCUTAKRgEArmJqCJT2LaEAAAAASUVORK5CYII="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA90lEQVR42u2ZIQ7CMBSGWzI1DOEU3S1QHIAzTCGmMBgsBpIGUb0TIBEchPmpiYVgmH04AoatfaPNlv9TW9L0fXnv77ZkQgAAGNDdUNDiZBRxJSaDbT0ZRdVCsbvg1AE5X8tf9/46YRQ7hM7mcTz7Kt40D+k9hGmpRVpqMehTIG1bbUvbaKIumxyeZ6fim+mqdU1ks+GpuHZaV19u/8tAkex7zYC1QFJs39dZsvQv4DKS8Y4giEDfsEYQJISfIwgSwr7p9CTcHbUY7ctIcD5IsjqnrM6JIzm8YwgBCEAAAhCAAAQgAAEIQAACEIAABEYnEPyXDQAAvAA6k1RMZkjaWwAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABAElEQVR42mNgGAWjYBSQCf6/m/afGuYwDQZHkGXx/2kaEEyhIygKgZerGBgYVkyiKCTIcgCjUBYjPj79omKaBsVpgGyXc3EJoFj+7dsHRrqngZRHExhSHk0YuGxIDcBIalCTCghFDQsxhvR8XUeW5SXcQQTVsJBi4KTru4hS92bbNdqlgeua7VRNAyQ7QPN6JZydp+k2sJURsVEyfKNgwNsDA+IA5CgYkESIHAUDkgipDYgqCet6JzAM28qIgZIGSd6bBf/z3iz4T4kjh142HHXAqANGHTDqgFEHjDpg1AGjDhh1wKgDRh0w6oBRB4w6YNQBw84BAz5lMwpGwSgYBQDccFIQ1INpfQAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA/0lEQVR42mNgGAWjYBRQCP6/m/afEv1MA2k5xT7/P00DgilwCBPZPl8xieHlKso9QpYDGIWyGPHx6RcN0zQoTgNku5yLSwDF8m/fPjDSPRekPJrAkPJoAsOAZUNqAEZSg5pUQChqWIgxpOfrOrIsL+EOIqiGhRQDJ13fRZS6N9uu0S4NXNdsp2oaINkBmtcr4ew8TbeBKQlJjZLhGwUD4gBqA4qiYEASIXIUDEgipDYgqiSs653AMGwrIwZKGiR5bxb8z3uz4D8ljhx62XDUAaMOGHXAqANGHTDqgFEHjDpg1AGjDhh1wKgDRh0w6oBRBww7Bwz4lM0oGAWjYBQAANBgUhD7MS1qAAAAAElFTkSuQmCC"], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA9UlEQVR42mNgGAWjYBRQAP6/m/Z/QC3/P03jP6WOYBqyQf9/msb/Fw4aFIcCWSHAKJTFiI9Pv5CYpkFxIiTb5VxcAiiWf/v2gZHuiTDl0QSGlEcTGIZ0Lhh1wKgDRh0w6oBRB4w6YNQBow4YdcCoA0YdMOqAUQeMOmDUAaMOYCR1KIZUQGjohoUYQ3q+riPL8hLuIIJqWEgxcNL1XUSpe7PtGu3SwHXN9oFNhJrXK+HsPE23gc0FxEbJ8I2CkVkSIkfBgCRC5CgYkERIbUBUSVjXO4Fh2FZGDJRMWOS9WfA/782C/5Q4cvC3B2g9ZTMKRsEoGAUABl9UTLhM22MAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA/UlEQVR42mNgGAWjYBSQCf6/m/afGuYwDQZHkGXx/2kaEEyhIygKgZerGBgYVkyiKCTIcgCjUBYjPj79omKaBsVpgGyXc3EJoFj+7dsHRrqngZRHExhSHk0YuGw44OXAqANGHTDqgFEHjDpg1AGjDhh1wKgDRh0w6oBRB4w6YNQBow4YFg5gJHUohlRAaOiGhRhDer6uI8vyEu4ggmpYSDFw0vVdRKl7s+0a7dLAdc32gU2Emtcr4ew8TbeBzQXERsnwjYKRWRIiR8GAJELkKBiQREhtQFRJWNc7gWHYVkYMlExY5L1Z8D/vzYL/lDhy8LcHaD1lMwpGwSgYBQCoPFIQOB5JEwAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA+0lEQVR42mNgGAWjYBRQCP6/m/afEv1MA2k5xT7/P00DgilwCBPZPl8xieHlKso9QpYDGIWyGPHx6RcN0zQoTgNku5yLSwDF8m/fPjDSPRekPJrAkPJoAsOAZUNqgFEHjDpg1AGjDhh1wKgDRh0w6oBRB4w6YNQBow4YdcCoA0YdMOoARlKHYkgFhIZuWIgxpOfrOrIsL+EOIqiGhRQDJ13fRZS6N9uu0S4NXNdsH9hEqHm9Es7O03Qb2FxAbJQM3ygYmSUhchQMSCJEjoIBSYTUBkSVhHW9ExiGbWXEQMmERd6bBf/z3iz4T4kjB397gNZTNqNgFIyCUQAAnCxSEBfxJMkAAAAASUVORK5CYII="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAAtElEQVR42u3YLQ6EMBCG4XazCkX2AOgeYA/AYRAEwVlQDZID7SmqVhCCwg4aw08noSF5P1fTeTJtk7bGEEKIIjJ5SVpcvBMt4vXY1ot38i+dugtRHbCfxu6N7+uEd+pNGC3PsnxTfFlme/smrEJnqtCZR58CAAAAAAAAAAAAAMkB9urt92qObsvvM5MUvzqqePj2LEH0g+XUy6gdB2nHQTRIjiEAAAAAAAAAAACA5N/1hBBCVnJsPwoZb3WlAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAAv0lEQVR42u3YLw7CMBTH8VeCmiIcAL0DcKQJgthZlokGOUk4C6eoI1kIavYhUBi2vbesiO8vmajp+6R/lrYihBBijD6jLtHP5h8QpsIay8/nRLhG4HETkWvrGgkTIOzP4Vd7vamIpXsNmOVFsfsqPgyvsPoaqFIjVWrybcPs/wEAAAAAAAAAAAAASyTMPf3OzdhpeTulk8P9ZCqejhemwHxhmXQzqvtO675TD5JtCAAAAAAAAAAAACD7cz0hhJA3VO48zrhZcsQAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAAvUlEQVR42u3YMQ6CQBCF4VlCRWU8gDUH8EgUxoKzEIuNJSXxLJ5iOxNirGjHwopGYcawzf8SCgqYb7JMsosIIYQ4o8+onueLnMXdnWusP5cDUpg7Hy7yuPkbMQHC/hy+3W+3DLF2fwNmeVXtZsWn6RU2n4ImddKkTrKN4T8CAAAAAAAAAAAAIDsgrN39rs2v3XK55CWH+8lUPB2vLIH5wLLoZNSOvbZjrx4kYwgAAAAAAAAAAAAg++96Qgghb0jePM4ZIoXIAAAAAElFTkSuQmCC"], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA8ElEQVR42mNgGAWjYBRQAP6/m/Z/QC3/P03jP6WOYBqyQf9/msb/Fw4aFIcCWSHAKJTFiI9PklmEFHBxCeD03dceCQbukhd49X/79oGRYgf0fF1Hlu9KuIMIOoCFFAMnXd9FlLo3267RLg1c12ynaoIm2QGa1yvh7DxNN/o7gJwoGb5RMCAOoDagKAoGJBEiR8GAJMJBFQWjuWBAEiFyFAxIIhwtiEar49HqeDQXjFbHowXRaHU8Wh2P5oLR6ni0IBqtjker49FcMFodjxZEo9XxgFfH1AZEzZjU9U6gmQMomrQiBhCaMxoFo2AUDDgAAGhpg7GxqsrnAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA9klEQVR42mNgGAWjYBSQCf6/m/afGuYwDQZHkGXx/2kaEEyhIygKgZerGBgYVkyiKCTIcgCjUBYjPj5JZhFSwMUlgNN3X3skGLhLXuDV/+3bB0aKHdDzdR1ZvivhDiLoABZSDJx0fRdR6t5su0a7NHBds52qOYpkB2her4Sz8zTdBrYgIjZKhm8UDHhdMCAOQI6CAUmEyFEwIIlwUEXBaC4YkESIHAUDkghHC6LR6ni0Oh7NBaPV8WhBNFodj1bHo7lgtDoeLYhGq+PR6ng0F4xWx6MF0Wh1PODVMbUBUTMmdb0TaOYAiiatiAGE5oxGwSgYBQMOAApVgXU8naLGAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA9ElEQVR42mNgGAWjYBRQCP6/m/afEv1MA2k5xT7/P00DgilwCBPZPl8xieHlKso9QpYDGIWyGPHxSTKLkAIuLgGcwfu1R4KBu+QFXv3fvn1gpNgBPV/XkeW7Eu4ggg5gIcXASdd3EaXuzbZrtEsD1zXbqZqbSHaA5vVKODtP021gcgGpUTJ8o2BAHEBtQFEUDEgiRI6CAUmEgyoKRnPBgCRC5CgYkEQ4WhCNVsej1fFoLhitjkcLotHqeLQ6Hs0Fo9XxaEE0Wh2PVsejuWC0Oh4tiEar4wGvjqkNiJoxqeudQDMHUDRpRQwgNGc0CkbBKBhwAAD+NoF1gT1kTQAAAABJRU5ErkJggg=="]], "RED": [["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA/ElEQVR42mNgGAWjYBSMAgrA/3fT/g+o5f+nafyn1BFMQzbo/0/T+P/CQYPiUCArBBiFshjx8ekXEtM0KE6EZLuci0sAxfJv3z4w0j0RfiqrYfhUVsMwpHPBqANGHTDqAEZSCxxSAaECioUYQ77OmUeW5dwpSQTVsJBi4Nc5y4hSt+nOHdqlAe69qwc2EX51DkUK4qiBzQXERsnwjYKRWRIiR8GAJELkKBiQRDioomA0FwxIIkSOggFJhKMF0Wh1PFodj+aC0ep42PUNieoZLa9oGr6dUwZKhun+NPT8/9PQ858SR44mwlEHjDpg8I+S0Xq4fhSMglEwCkYBAEhNbIgOWHdhAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABBElEQVR42mNgGAWjYBSMAjLB/3fT/lPDHKbB4AiyLP4/TQOCKXQERSHwchUDA8OKSRSFBFkOYBTKYsTHp19UTNOgOA2Q7XIuLgEUy799+8BI9zTwqayG4VNZzcBlwwEvB0YdMOqAYeEARlILHFIBoQKKhRhDvs6ZR5bl3ClJBNWwkGLg1znLiFK36c4d2qUB7r2rBzYRfnUORQriqIHNBcRGyfCNgpFZEiJHwYAkQuQoGJBEOKiiYDQXDEgiRI6CAUmEowXRaHU8Wh2P5oLR6njY9Q2J6hktr2gavp1TBkqG6f409Pz/09DznxJHjibCUQeMOmDwj5LRerh+FIyCUTAKRgEAKs9qTBfSbMUAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABAklEQVR42mNgGAWjYBSMAgrB/3fT/lOin2kgLafY5/+naUAwBQ5hItvnKyYxvFxFuUfIcgCjUBYjPj79omGaBsVpgGyXc3EJoFj+7dsHRrrngk9lNQyfymoYBiwbUgOMOmDUAaMOYCS1wCEVECqgWIgx5OuceWRZzp2SRFANCykGfp2zjCh1m+7coV0a4N67emAT4VfnUKQgjhrYXEBslAzfKBiZJSFyFAxIIkSOggFJhIMqCkZzwYAkQuQoGJBEOFoQjVbHo9XxaC4YrY6HXd+QqJ7R8oqm4ds5ZaBkmO5PQ8//Pw09/ylx5GgiHHXAqAMG/ygZrYfrR8EoGAWjYBQAAB6/akxYgmPPAAAAAElFTkSuQmCC"], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA9ElEQVR42u2ZMQ6CMBiFW8MEi/EUPYaJZ3BxNE4egDgwEGfmTsRRBzd3b8IBmIwhgYnkd8VF2v5IA3lvI2n6f3nvtZAgBARBDNFLk9fhpBVxIRaTtZ60onKt2C44OSBXR/nreTwntGKX0Jk8DJdfw5vmLUcvYRUnoooTMelTIG2ttlVfNIHJJnV+cRoeHfa9awKbDev8arTuURT/60D0vA/aAWuAerPtWLwbH8AlkvlG4AVgaLEi8FLCbgReSji0jG7C2+k835eR4HyQtGlGbZoRB3J6xxAAAAAAAAAAAAAAAAAAAAAAAAAAAMwOwPsvGwiCoA/LN1SQtqaB/wAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA/klEQVR42mNgGAWjYBSQCf6/m/afGuYwDQZHkGXx/2kaEEyhIygKgZerGBgYVkyiKCTIcgCjUBYjPj79omKaBsVpgGyXc3EJoFj+7dsHRrqngU9lNQyfymoGLhtSAzCSGtSkAkJRw0KMIV/nzCPLcu6UJIJqWEgx8OucZUSp23TnDu3SAPfe1VRNAyQ74KtzKFIQRw1sZURslAzfKBjw9sCAOAA5CgYkESJHwYAkQmoDokrC5RVNw7cyYqCkQfKnoef/n4ae/5Q4cuhlw1EHjDpg1AGjDhh1wKgDRh0w6oBRB4w6YNQBow4YdcCoA0YdMOwcMOBTNqNgFIyCUQAAbSNSVH4bcSEAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA/ElEQVR42mNgGAWjYBRQCP6/m/afEv1MA2k5xT7/P00DgilwCBPZPl8xieHlKso9QpYDGIWyGPHx6RcN0zQoTgNku5yLSwDF8m/fPjDSPRd8Kqth+FRWwzBg2ZAagJHUoCYVEIoaFmIM+TpnHlmWc6ckEVTDQoqBX+csI0rdpjt3aJcGuPeupmoaINkBX51DkYI4amBKQlKjZPhGwYA4gNqAoigYkESIHAUDkgipDYgqCZdXNA3fyoiBkgbJn4ae/38aev5T4sihlw1HHTDqgFEHjDpg1AGjDhh1wKgDRh0w6oBRB4w6YNQBow4YdcCwc8CAT9mMglEwCkYBAGETUlT0cSyUAAAAAElFTkSuQmCC"], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA80lEQVR42mNgGAWjYBRQAP6/m/Z/QC3/P03jP6WOYBqyQf9/msb/Fw4aFIcCWSHAKJTFiI9Pv5CYpkFxIiTb5VxcAiiWf/v2gZHuifBTWQ3Dp7IahiGdC0YdMOqAUQeMOmDUAaMOGHXAqANGHTDqgFEHjDpg1AGjDhh1wKgDGEkdiiEVEBq6YSHGkK9z5pFlOXdKEkE1LKQY+HXOMqLUbbpzh3ZpgHvv6oFNhF+dQ5GCOGpgcwGxUTJ8o2BkloTIUTAgiRA5CgYkEVIbEFUSLq9oGr6VEQMlExZ/Gnr+/2no+U+JIwd/e4DWUzajYBSMglEAABHlVJDSfKkuAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA+0lEQVR42mNgGAWjYBSQCf6/m/afGuYwDQZHkGXx/2kaEEyhIygKgZerGBgYVkyiKCTIcgCjUBYjPj79omKaBsVpgGyXc3EJoFj+7dsHRrqngU9lNQyfymoGLhsOeDkw6oBRB4w6YNQBow4YdcCoA0YdMOqAUQeMOmDUAaMOGHXAqAOGhQMYSR2KIRUQGrphIcaQr3PmkWU5d0oSQTUspBj4dc4yotRtunOHdmmAe+/qgU2EX51DkYI4amBzAbFRMnyjYGSWhMhRMCCJEDkKBiQRUhsQVRIur2gavpURAyUTFn8aev7/aej5T4kjB397gNZTNqNgFIyCUQAAs8JSVOAq01EAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA+ElEQVR42mNgGAWjYBRQCP6/m/afEv1MA2k5xT7/P00DgilwCBPZPl8xieHlKso9QpYDGIWyGPHx6RcN0zQoTgNku5yLSwDF8m/fPjDSPRd8Kqth+FRWwzBg2ZAaYNQBow4YdcCoA0YdMOqAUQeMOmDUAaMOGHXAqANGHTDqgFEHjDqAkdShGFIBoaEbFmIM+TpnHlmWc6ckEVTDQoqBX+csI0rdpjt3aJcGuPeuHthE+NU5FCmIowY2FxAbJcM3CkZmSYgcBQOSCJGjYEASIbUBUSXh8oqm4VsZMVAyYfGnoef/n4ae/5Q4cvC3B2g9ZTMKRsEoGAUAp7JSVOEC1v8AAAAASUVORK5CYII="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAAtklEQVR42u3YsQmEMBTG8eSwspIrnCEjWFrcNDeAlYUDWGcaB3AUsRCxsBKe9TWn5oFB+H9dmrwfLwkkMYYQQhSRyUvU4uKdaBGvx7ZevJOhdOouBHXAvr/23/i+Tnin3oTB8jTNfoqv62xv34RLVZulqs2jTwEAAAAAAAAAAACA6AB79fZ7NUe35eTMJGPxCSqe9x1LEPxgOfUy2ppWtqYVDZJjCAAAAAAAAAAAACD6dz0hhJAdU1s/QpTGKSoAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAAw0lEQVR42u3YvQ3CMBCG4TOiSoUomCEjMADTMECqFBkgVQrPgJiBAVgFCoRSpIp0FKloSHIXxRTvJ6Vw43vkn8i2CCGEGKOvqEv0s/kHhKmwxnz4nAjXCDyuInJpXCNhAoT9OfxqrzcVMXevAbM8y3ZfxbvuHVZfA21RSluU6bZh8v8AAAAAAAAAAAAAgCUS5p5+52bstLyd0snzeDIVP9xvTIH5wjLpZtRXtfZVrR4k2xAAAAAAAAAAAABA8ud6QgghHzXdPQajIZk/AAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAAwUlEQVR42u3YsQ2CUBDG8XvEiopQOAMjOIDTOAAVBQNQWbwZjDM4gKtoYQgFFclRWNko3Ble8/8SCgq43+VxyXuIEEKIM/qK6nk+S1nc3bnG6n05IJm588tZHld/IyZAKE/h2/12yxAr9zdglud58VF8HPuw+RQMdSND3UiyMfxHAAAAAAAAAAAAACQHhLW737X5tVveLXnJ83A0Fd/fbyyB+cCy6GQ0tZ1ObaceJGMIAAAAAAAAAAAAIPnvekIIITMpzT0GKFGEQAAAAABJRU5ErkJggg=="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA70lEQVR42mNgGAWjYBRQAP6/m/Z/QC3/P03jP6WOYBqyQf9/msb/Fw4aFIcCWSHAKJTFiI9PklmEFHBxCeD03dceCQbukhd49X/79oGRYgd8nTOPLN9xpyQRdAALKQZ+nbOMKHWb7tyhXRrg3ruaqgmaZAd8dQ5FCuIo+juAnCgZvlEwIA6gNqAoCgYkESJHwYAkwkEVBaO5YEASIXIUDEgiHC2IRqvj0ep4NBeMVsejBdFodTxaHY/mgtHqeLQgGq2OR6vj0VwwWh2PFkSj1fGAV8fUBkTNmCyvaKKZAyiatCIGEJozGgWjYBQMOAAAMJ+DvefyfqkAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA9UlEQVR42mNgGAWjYBSQCf6/m/afGuYwDQZHkGXx/2kaEEyhIygKgZerGBgYVkyiKCTIcgCjUBYjPj5JZhFSwMUlgNN3X3skGLhLXuDV/+3bB0aKHfB1zjyyfMedkkTQASykGPh1zjKi1G26c4d2aYB772qq5iiSHfDVORQpiKMGtiAiNkqGbxQMeF0wIA5AjoIBSYTIUTAgiXBQRcFoLhiQRIgcBQOSCEcLotHqeLQ6Hs0Fo9XxaEE0Wh2PVsejuWC0Oh4tiEar49HqeDQXjFbHowXRaHU84NUxtQFRMybLK5po5gCKJq2IAYTmjEbBKBgFAw4A0nyBgbAj5EgAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA80lEQVR42mNgGAWjYBRQCP6/m/afEv1MA2k5xT7/P00DgilwCBPZPl8xieHlKso9QpYDGIWyGPHxSTKLkAIuLgGcwfu1R4KBu+QFXv3fvn1gpNgBX+fMI8t33ClJBB3AQoqBX+csI0rdpjt3aJcGuPeupmpuItkBX51DkYI4amByAalRMnyjYEAcQG1AURQMSCJEjoIBSYSDKgpGc8GAJELkKBiQRDhaEI1Wx6PV8WguGK2ORwui0ep4tDoezQWj1fFoQTRaHY9Wx6O5YLQ6Hi2IRqvjAa+OqQ2ImjFZXtFEMwdQNGlFDCA0ZzQKRsEoGHAAAMZsgYETKZJqAAAAAElFTkSuQmCC"]], "GOLD": [["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABK0lEQVR42u1YOw6CUBB8a2jExkTiMbT2Mh7BGOUYaKz0GtTamlir1JQWBhMbsFxL/+GzwBMy05EQdngzu5N9SgEAAAjAzCz9RkNSfHWUk2joPkVD8veu+3gmIirtBN6LZS0uxvIgN2Fm5qbZfikeRVcq3YShN1ShN1SV7gIQAAEQoLQDJy3iBlSiMArPi0zFW91xvml4O8wTvbddn4rzQHOw12vC267/INOb6O2CpJLUV4LKDSIOHM5VgjQm5MBh1Zl+kDAkEqQxIVk2caCYLJu0SfBeHF0glkDLJHyWQMskrPQgQhwjjmMJfEur0rrgV1qV1gVk2aQus6+BkUccJ5IgrrgkjrEbijajjWPXdzlVkms69kfM/oglJGFCEACB/78lK/q6HgAAALgDFleHDXYxV6QAAAAASUVORK5CYII=", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABO0lEQVR42u1YMQrCQBC8lTRqIyg+Q2s/4xNENM8QsdJvWGsrWKupU1qIhY1armU0XGIue94RmalShOyQ2Z2dO6UAAABKgpnZxndq2o9fZ+yKRKAt3p4qviqmTkhZhVen5JmIyBoB6oSUV/wd67WchFaCb8XTxSR/QITlUd4DpZk3Gq2P4o/HzZ4ERXGPhuoeDe2PoUuAAAiAAJkajim+GVRQyHAui1LFm92x+TbMw/M4L/TebnP+XQ/UBwe/Tfjc9xMyvYnfKSgqyf9KUDkj0qVtkQQmTZik7U8SgUQCkybMSttOJdClbUyBSAIvTvgugRcnrLQRYR1jHWMKrEvgpQnLrmOcDUUno+0s/N/DqZJc03E8Yo5HbEIyHUrdx/JUMg6U41CaTsbOp8BrLIcRqUrekv36uh4AAAB4AcgRlonZZ7lrAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABS0lEQVR42u1YMU7DQBDcRW4ITaRYPANqPpBn5AkRAr+A2iCq8JfQRkqNkzolBUokmiTlUFDYWJZ9l7PvIjPTJIWTnbuZnZVXhCAIwhEA4PL7i8o/3abwUVxEJKosPnoUbAUaJ1pX/G2Vf1dVbe9aG24AAGYZMH76/XS5iUoJ6k4uIlI+baunt8Esc/fAycwHg+Gf4ofDt7YmgSn264ns1xNpvQ19ggRIgATUNnBs0RRQkVHgfL2eVPzq+t5+HNfhmL0YPbeYf3bngcu7j7AmPC5vczI3D2G7wFSS/krwP5OwKEEQExYlCGLCs5KAXRDEhEUJgpiQQcRx3O9xbLIb6qwL8t1QiiBdoHGisntuXM90Oo6binMcdwGjN6P3NOnvy6m4rOmwmQKbKWxIltvcqweqsibySUDjRMtLcO9dUM4a5gAJBF/XEwRBED+K26C12/W4xgAAAABJRU5ErkJggg=="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABHklEQVR42u2ZOwrCUBBFZySN2ggGl6G1m3EJIpplRLHSbaTWVrD2U1taSASbaDkWFn5Q8l4m5qHc24RAyD1vPpmBEEEQpJCIiPYdJY35dKOHKLmOoqc5fRTd75mZC4vAq1lWc7Uma30RZiavVGpP5ufziQsvwmTboWTboZ/uArYNta3SUmPUhslhnMm82ujl+x24rEdGzy1m++/VQLm9yrUGrAEuy9YdptknZ8PIJiXGABKH4iwFEodC9UEqxGMKcgVgP2A6Dm/Xby0wbw73lAIT88cU2BThpwh7mi6wKUL2A5aY5PWQhc6CdxE2isA8DP53GJFmIZFdV2TXFQ2k830AAAAAAAAAAAAAAAAAAAAAAAAAAAAAwPkvGwiCoCumdm8VZdurAQAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABMElEQVR42u2ZsQ4BQRCGZ+QaNBLiMai9jEcQ4R5DRMVrqGklaketVIhCc6cc5XFZ3N6svZD/r6647HyZf/ZudpYIgqCCEhFxsU7FuPhlIr4gAmPw5pjkQsKtkF8FXuzTZ2ZmZwDcCvld8Ectl3oIowWfgmeDaTKg0jzS10Bh8lqt8RQ8Sa7uLMir+NCn+NB3vw19im1TbatP1gS5Un2eFQpebw/tvwPvdIumud7brE7fq4Fqb+e0BqwBbttuCtMZ+QcoYsn/WlAKgKqJMfQZKgtsijDtM54hAo0FNkX4qs/waoGpz8iVgfUk/N+fEWkaEjkORI4D0UCW3g8AAAAAAAAAAAAAAAAAAAAAgHeA7PHc/4AiMyMIyPPxPDsj8G5BqQMK7AL6yfsC+vKVDQRB0B2Tan6Rpe+QyAAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABQUlEQVR42u2ZMW6DQBBFZxGN7SZSIh/DqX0BH4MjICvhBKmR5cq5i91aSh3i2mUKy0Ua2+VPkQK8QrDLLosU/d9AAczb+bMMGkQoinIUALjcH9U+9JwjRHARkbg2+OOr4CxQT5lqCv7+VZ4rpZS/tLZkAAA2BbB4+zu6ZKLWgqaVi4joq/W6ehttCvca6Ew+Hj/cBb9ef5Q3C0x1OSRyOSTifRuGlLJNta3arImNUn1adwo+mS7tX0RNuhUro+v22+/+amA0//RaA9YAt4/nEmb2Eh6giyXGACZdsDcLyi7YDFG1wIfiagNqa8F9KLLpgroFgxRh1QLvRTiEjN6Euzz7v81IXD5IcEyBYwoXyMFrgAAEIAABCEAAAhCAAAQgAAGCA+gDkCh4cG0KE4cEqJvCBLdAn8JwFxBg8F82FEVRv7wmii9nx6bjAAAAAElFTkSuQmCC"], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABHUlEQVR42u2Zvw7BUBTGzxELFonGYzB7GY8gQh+jxMRrdGaVmJXZaJBKLG3HYzC0hLjt0Rb5vqVpctPvd8+f3OZcIgiCFBIR0X6jojFf7PQQlbKjWNXs3nXjd2bmwiLwaJbVXK25py/CzOT1evPOPAwvXHgRBvs+Bfs+/XQXAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHDaUUxavRvdGI3pgtMsk3mjPaSPzgkjb2q0br085lcDtd623CKMNt0YpjMqtwtMU2IMIL4jpaVAfEeoNX4LkUzBRwHYspnOk9szJz3b3F0KTMyTKUhThK8iXNV0QZoiZMtm8UkeN1noWfAswkYRWDn2/x5GpLmwkMNA5DAQDeT3/w/kfWUDQRB0BUsbbxUGhBOiAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABIUlEQVR42u2ZPQ6CQBSE9xkatTGBeAytvQxHIEY4BhorvYa1tibWIjWlhcHEBiifnYpB3WURfzJTUZCdL8xbIDtCQBBUUszMVazTKFw89rkuCKPQ3HQFx4LJ8uiR8Xx3vSYiqgyALI+emd9qsdCHKIzglfm9mc4T0NIs0J+B0uStVidnnqan6iKQVRLaIgnt6rdhnQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAg1aMYVb06ujFkFkkO01Lm7e5QKJ8TPlMWTKTuWy/375uB5mD72SHMNv0rTG/02V0gG8n/RvBzLyKOfb7vIrQiUBnCi7Hp5goRrQhUhvBSARzHuTrAqDOCoh5CCmDle//7MRI6hQVHDnPksA7k9/8PvLuygSAIOgPyAHElKYLe3AAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABQElEQVR42u2ZMU7DQBBF/0RuCA0SFscgNRfgGDlChMAnoA4RVXIXaJFSY1KnpEBBonFSfgoKE8uyd7NrB6H/G7tY77ydmdVafwFJkgJFkiHfD2on3UzZR3AASGqDn9+BG9DSzJqCL97KdzOzeGltyQBJznPy+v7nGZKJ2hI0rRwAqquNunofzfPwHjiYfDg82wu+3X5ZtBK4qliNUazGiL4N+5QABCAAAQhAAAIQgAAEIAABCEAAAhCA+VoxvmqzbhKXSYqPx4OCn17cwNuobNIunzmNe3l6764HTq5ej9uEu+WohLm8Pe4ucC2JM4CLS95ZCUqXvBnidwmiAliaGT4fWo1qRHbiBz4uebUEvk1Yl+UkZBf4NqGlmVUvQno/C6pZdsrA8zT7v4cRQi4suJ6Q6wlDIP/+/0DXVzaSJEnf4EaIvQUo+RcAAAAASUVORK5CYII="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA6klEQVR42u2YMRKCMBBFswwVlTNSexrPwRFo5BjUeg0O4CmUmsI6hQ20305HBkfMjhsc/+to+I8km2xwjhBCFACA9h2JJvxw1ksksUcx1Xx90zyeRUTMRmAcFhquZn/SL8Jg8yxbPYUPw1XMF2HfFq5vC/fTVUABClCAAhSgAAWWJQBfI5oAfA233plL3NtyySuBd5C8kmhTYB0+qysed7+f8q5bnnUz8sdNUHi+vSy/DKNPgdPcjNCVQFdCI8mt+L8Eprb5xDR84qxJzer9xVljOgVTZw2rgAIUoAAFKLD8rvjbv+sJIYTcABf7WwVBbX+uAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAAA90lEQVR42u2YMRKCMBBFs0wqKmeg9jSegyPQwDGs9RocwFMoNYU1hQ20aynGIJDEZRz+q6jy37DsTlilAADAEWbmEOdE1sPbI0tJaGt4UihuFVNa0ljw+fZ6JiIKJkBpSd/Ch1SVv4S1BFPhZpjPG/DidPX/BpzN43j3Ft73j3AlmEtXZ6qrs/BtKAkEIAABCEAAAhCAAARWF6Clt9+lTN2W9ZxD2sveKTw93FEC5x+WWX9G3OTMTc4+kmjDbQnYVj+RaHhSfEhosX4fWf2IlsC2+kEXQGB7AuYckJ+ExjDS0nPAHEbiJVh1EqIL/vNW/Ot1PQAAgCd0YmkP0VUyQwAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABAUlEQVR42u2YOxKCMBRFX5hUVM5I7Wocl8ESaHQF1ta4GVeB1BTWFDbQXgsLNJPhlxAo7mmgIe8kjzA3iBBCiCMA4PJ8ZB20viFEcRERbS2+PwtqgUouqq/4/dndK6WUv2UdWAEAyAvgdP1eXVbC2oK+mYuImLP1Ovsp5IX7OzDbPI53f8Xb9q28tWAsTZlKU6bifRuGhAIUoAAFKEABCmxLYGwcX0Sgi+NhJfRvEh46CyzegtDFR6ViM/1OZSgt6zGD1I/DrOLJ8bX9bbh6C8TlZIQqA6oMLpL8FFOAAhSgAAWCC5iZMwpe3Ai+OqSALfgGb4EZfLkLKLD673pCCCEfwDR0rUyfyxQAAAAASUVORK5CYII="], ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABI0lEQVR42u1Zyw4BQRDsFhdciI3P4MpfCfMZS9z8hjNXCVf8g4OscMGxHYnX7myv7ZCq2ya72zVTXV3JDBEAAAqIiGj/UdAUH2/0JArWu1jUrH4yuT0zM+e2A4/F0hYnIor9sFyuvtU4XB7ItWsfvz+fj6wmcNqNUq2u0ujGEvDqgct6mOi9+XT7vR4odVaZusCbwGXRupFp9shsEPlI8r8SmBBQhVcUSqYS+DShRKFQvf9EoqiRwKcJOXAsEQkHjs0keCwOF6glMJmE9xKYTMKfHkSIY8QxXJC5BCZNmDaOMYgQx4hjuABxjEGEOEYcwwWI40QEXp1i5SbBu1Os3FzAgWPaD14eJOXmgrjiiGOyujWbhe5rBFSXVkkQd2cEAIA5rqsTnIyLBzspAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABMElEQVR42u2ZzQ7BQBSF50o3akM0HoMtbyX0MRqx8xpds5WwxTtYSBM22uVYtprp7x0zyDkrC517OPfeL5kKAUFQS0kppY5zOsrDo0CaMuEoiw+XQkZCkudTUeHNJf1MRKTNAHk+lRXPKgz5JpQRVBXPF+P8A5UPum6/MOfgeBf+dFD6fBw/iG3geVu3+nW90bzSgNPkwOS8qvW9/fbK64EydWcnrfuksYHkMEnNjBfmDbSJ5H8jsGKABTAFY1gRNGnClDHvJhxOBE2asIgxRiNQMQZTwIrAyibMRmBlE/70IgKOgWNMgfYIrDRhWxxjEQHHwDGmADjGIgKOgWNMwdfgOH9FYxTHqnsix2QEqnsi41PAvqQCjq3jWLdqTcEu8D/XlILx0qqOqt4ZQRBkXS+e6awIZcMPfwAAAABJRU5ErkJggg==", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAYAAACX3ffDAAABO0lEQVR42u1ZMW7CQBDcPbkJaYiCeAZpwwd4D0ruBalNRAV/SdpI0GL+QBERhQYoNwXFEcvc2azti6KZxi58d7M3uzuSlwgAACVERDTrTeGm21TaOJyIKCk8/P6ZZEvCPcu+w+dr987MXN+1Bm5ARGSWiYxeTk/NTRRK4IuciCgfrSb64MJOp3sxunT5Tfbxzrv+cNixmsD+c3pVdLf9cZBAUmXDY/Za6ruPt40uB3y4Ga5q7SOVCRwXD47M4Kl9AtdI8n8liEKgbqgkiJKE5xJEScI/JQGqIEoSnksQJQnRiGDHsGNUAewYjQh2DDtGFcCO0Yhgx7BjVIHWjvN/4lu1YzeLcCRM1UmJRgLuWaavya9xgPGxawL5WYTxsWu9CkKHw46bQKmJyXtqm0tKUgytyiA0MwIAIDp+ALbctMIpcykSAAAAAElFTkSuQmCC"]]}; // IMGS[colour][shape][flame frame]
+const SHAPES = [
+  { name: "Classic", note: "Body and two short wicks." }, { name: "Hammer", note: "Small body, long tail below." },
+  { name: "Star", note: "Small body, long wick above." }, { name: "Doji", note: "Open equals close. Pure indecision." },
+  { name: "Marubozu", note: "All body, no wicks." },
+];
+const ABI = [
+  "function levelInfo(uint256 level) view returns (uint256 price, uint256 cap, uint256 minted)",
+  "function mint(uint256 level, uint256 qty) payable",
+  "function paused() view returns (bool)",
+  "function owner() view returns (address)",
+  "function setPaused(bool)",
+  "function withdraw()",
+  "function balanceOf(address) view returns (uint256)",
+  "function tokenOfOwnerByIndex(address, uint256) view returns (uint256)",
+];
+const LIVE = !!CONFIG.contractAddress, L = CONFIG.levels, TOTAL = L.reduce((s, l) => s + l.cap, 0);
+let state = { minted: [0, 0, 0], owned: [], paused: false, account: null, owner: null, held: 0 };
+let qty = [1, 1, 1], flame = 0, showShape = 0, chain = null; // chain: { ethers, provider, signer, contract }
+const $ = id => document.getElementById(id);
+const fmt = v => `${(+v).toFixed(5).replace(/0+$/, "").replace(/\.$/, "")} ${CONFIG.symbol}`;
+const short = a => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const levelOf = id => id < L[1].firstId ? 0 : id < L[2].firstId ? 1 : 2;
+const shapeOf = id => (Math.imul(id + 1, 2654435761) >>> 0) % SHAPES.length; // fixed by the token number
+const img = (lv, sh, f = flame) => IMGS[L[lv].key][sh][f % 3];
+
+function toast(msg, color) {
+  const t = $("toast"); t.textContent = msg; t.style.borderLeftColor = color || "var(--up)"; t.style.display = "block";
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = "none", 5000);
+}
+function saveDemo() { try { localStorage.setItem("candles-demo", JSON.stringify({ minted: state.minted, owned: state.owned, paused: state.paused, held: state.held })); } catch (e) {} }
+function loadDemo() { try { const s = JSON.parse(localStorage.getItem("candles-demo")); if (s && Array.isArray(s.owned)) Object.assign(state, s); } catch (e) {} }
+
+// ---- static pieces ----
+function build() {
+  $("orders").innerHTML = L.map((l, i) => `
+    <div class="panel order" id="order${i}" style="--c:${l.css}">
+      <div class="order-head"><b>${l.name}</b><span class="pill">${l.rarity}</span></div>
+      <div class="order-body">
+        <div class="showcase">
+          <div class="frame"><img class="candle" id="o-art${i}" alt="${l.name} pixel candle"></div>
+          <div><h2>${fmt(l.price)}</h2><p>${l.tag}</p></div>
+        </div>
+        <div>
+          <div class="kv"><span>Left</span><b id="o-left${i}"></b></div>
+          <div class="kv"><span>Shape</span><b>Random 1 of 5</b></div>
+          <div class="kv"><span>Amount</span>
+            <span class="amount"><button type="button" data-step="${i},-1" aria-label="Fewer">−</button><input id="qty${i}" type="number" min="1" max="10" value="1" aria-label="Amount of ${l.name}"><button type="button" data-step="${i},1" aria-label="More">+</button></span></div>
+          <div class="kv" style="border: 0"><span></span><span class="quick"><button type="button" data-set="${i},1">1</button><button type="button" data-set="${i},5">5</button><button type="button" data-set="${i},10">MAX 10</button></span></div>
+        </div>
+        <div class="total"><span class="label">Total</span><b id="o-total${i}"></b></div>
+        <button type="button" class="buy" id="buy${i}" data-buy="${i}">BUY</button>
+        <div class="bar"><i id="o-bar${i}"></i></div>
+        <div class="label" id="o-minted${i}"></div>
+      </div>
+    </div>`).join("");
+  document.querySelectorAll("[data-step]").forEach(b => b.onclick = () => { const [i, d] = b.dataset.step.split(",").map(Number); qty[i] += d; render(); });
+  document.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { const [i, n] = b.dataset.set.split(",").map(Number); qty[i] = n; render(); });
+  document.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => buy(+b.dataset.buy));
+  L.forEach((_, i) => $(`qty${i}`).onchange = () => { qty[i] = Math.floor(+$(`qty${i}`).value) || 1; render(); });
+  $("rows").innerHTML = L.map((l, i) => `<tr data-l="${i}"><td class="asset"><img class="candle" id="row-img${i}" alt="">${l.name}</td><td><span class="pill">${l.rarity}</span></td>
+    <td>${fmt(l.price)}</td><td><span class="minibar"><i id="row-bar${i}" style="background:${l.css}"></i></span><span id="row-m${i}">0</span></td><td>${l.cap}</td>
+    <td><button type="button" data-l="${i}">Trade</button></td></tr>`).join("");
+  document.querySelectorAll("#rows tr").forEach(r => r.onclick = () => { // jump to that colour's order card and flash it
+    const card = $(`order${r.dataset.l}`); card.scrollIntoView({ block: "center" }); card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 1200);
+  });
+  $("shape-list").innerHTML = SHAPES.map((s, k) => `<div class="panel shape"><div class="trio">${L.map((_, i) => `<img class="candle" data-art="${i},${k}" alt="">`).join("")}</div>
+    <b>${s.name}</b><p>${s.note}</p></div>`).join("");
+  const items = L.map((l, i) => `<span><b class="${["up", "down", "gold"][i]}">${["▲", "▼", "★"][i]} ${l.name}</b> ${fmt(l.price)} · ${l.cap} supply</span>`).join("");
+  $("tape").innerHTML = Array(5).fill(items + `<span><b class="gold">ROBINHOOD CHAIN</b> · 1,111 candles · up to 10 per mint</span>`).join("");
+  $("s-floor").textContent = fmt(Math.min(...L.map(l => l.price)));
+}
+
+function render() {
+  const total = state.minted.reduce((a, b) => a + b, 0);
+  $("s-total").textContent = `${total} / ${TOTAL}`;
+  $("s-gold").textContent = L[2].cap - state.minted[2];
+  $("market").classList.toggle("open", !state.paused);
+  $("market-text").textContent = state.paused ? "MARKET CLOSED" : "MARKET OPEN";
+  L.forEach((l, i) => {
+    const left = l.cap - state.minted[i];
+    qty[i] = Math.max(1, Math.min(qty[i], CONFIG.maxPerMint, left || 1));
+    $(`o-left${i}`).textContent = left; $(`qty${i}`).value = qty[i];
+    $(`o-total${i}`).textContent = fmt(l.price * qty[i]);
+    $(`o-bar${i}`).style.width = `${(state.minted[i] / l.cap) * 100}%`;
+    $(`o-minted${i}`).textContent = `${state.minted[i]} of ${l.cap} minted`;
+    $(`buy${i}`).disabled = left === 0 || state.paused;
+    $(`buy${i}`).textContent = left === 0 ? "SOLD OUT" : state.paused ? "MARKET CLOSED" : LIVE && !state.account ? "CONNECT WALLET TO BUY" : `BUY ${qty[i]} ${l.name}`;
+  });
+  L.forEach((x, i) => { $(`row-m${i}`).textContent = state.minted[i]; $(`row-bar${i}`).style.width = `${(state.minted[i] / x.cap) * 100}%`; });
+  $("connect").textContent = state.account ? short(state.account) : "Connect wallet";
+  $("own-n").textContent = `${state.owned.length} candle${state.owned.length === 1 ? "" : "s"}`;
+  $("owned").innerHTML = state.owned.length ? state.owned.slice().sort((a, b) => b - a).map(id => {
+    const lv = levelOf(id), sh = shapeOf(id);
+    return `<div class="panel own"><img class="candle" data-own="${lv},${sh}" src="${img(lv, sh)}" alt=""><b style="color:${L[lv].css}">${L[lv].name} ${SHAPES[sh].name.toUpperCase()}</b><span class="label">#${id}</span></div>`;
+  }).join("") : `<p class="empty">No candles yet. Buy one above.</p>`;
+  const admin = CONFIG.adminWallet || (LIVE ? state.owner : null);
+  const isAdmin = admin ? !!state.account && state.account.toLowerCase() === admin.toLowerCase() : !LIVE;
+  $("nav-admin").hidden = $("admin").hidden = !isAdmin;
+  $("a-state").textContent = state.paused ? "CLOSED" : "OPEN";
+  $("a-state").style.color = state.paused ? "var(--down)" : "var(--up)";
+  $("a-launch").disabled = !state.paused; $("a-stop").disabled = state.paused;
+  $("a-held").textContent = fmt(state.held); $("a-withdraw").disabled = !(state.held > 0);
+  $("a-wallet").textContent = admin ? short(admin) : "the owner wallet";
+  paintArt();
+}
+function paintArt() { // flames flicker and the order panel cycles through the five shapes
+  $("logo").src = img(0, 0);
+  L.forEach((_, i) => $(`o-art${i}`).src = img(i, (showShape + i * 2) % SHAPES.length));
+  L.forEach((_, i) => $(`row-img${i}`).src = img(i, 0));
+  document.querySelectorAll("[data-art]").forEach(e => { const [i, k] = e.dataset.art.split(",").map(Number); e.src = img(i, k); });
+  document.querySelectorAll("[data-own]").forEach(e => { const [i, k] = e.dataset.own.split(",").map(Number); e.src = img(i, k); });
+}
+
+// ---- decorative chart ----
+function chart() {
+  const cv = $("chart"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height, CW = 8, AX = 30;
+  const C = { up: ["#28d678", "#96ffbe", "#148c4e"], down: ["#f44254", "#ffa6ae", "#a61e30"], gold: ["#f6c62e", "#fff4a0", "#ba8014"] };
+  let price = H * 0.55, list = [], off = 0, base, timer;
+  const next = () => {
+    const open = price, close = Math.max(20, Math.min(H - 16, open + (Math.random() - 0.52) * 18));
+    list.push({ open, close, hi: Math.min(open, close) - 1 - Math.random() * 9, lo: Math.max(open, close) + 1 + Math.random() * 9, gold: Math.random() < 0.06 });
+    price = close; if (list.length > (W - AX) / CW + 2) list.shift();
+  };
+  for (let i = 0; i < (W - AX) / CW + 2; i++) next();
+  base = list[0].open;
+  const val = y => (1 + (H * 0.55 - y) / H).toFixed(4);
+  function draw() {
+    ctx.fillStyle = "#0d1118"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#151c28"; for (let y = 14; y < H; y += 22) ctx.fillRect(0, y, W - AX, 1); for (let x = 0; x < W - AX; x += 32) ctx.fillRect(x, 0, 1, H);
+    list.forEach((c, i) => {
+      const x = Math.round(i * CW - off); if (x > W - AX - 6) return;
+      const [body, light, dark] = c.gold ? C.gold : c.close <= c.open ? C.up : C.down;
+      const top = Math.round(Math.min(c.open, c.close)), h = Math.max(1, Math.round(Math.abs(c.open - c.close)));
+      ctx.fillStyle = body; ctx.fillRect(x + 2, Math.round(c.hi), 2, Math.round(c.lo - c.hi)); ctx.fillRect(x, top, 6, h);
+      if (h > 2) { ctx.fillStyle = light; ctx.fillRect(x, top, 1, h); ctx.fillStyle = dark; ctx.fillRect(x + 5, top, 1, h); }
+      ctx.fillStyle = c.gold ? "#9fd2ff" : "#ffb04a"; ctx.fillRect(x + 2, Math.round(c.hi) - 2, 2, 2); // every chart candle is lit
+    });
+    const last = list[list.length - 1], y = Math.round(last.close), up = last.close <= last.open;
+    ctx.fillStyle = "#2d3a52"; for (let x = 0; x < W - AX; x += 4) ctx.fillRect(x, y, 2, 1);
+    ctx.fillStyle = up ? C.up[0] : C.down[0]; ctx.fillRect(W - AX, y - 5, AX, 11);
+    ctx.fillStyle = "#0d1118"; ctx.fillRect(W - AX, 0, 1, H);
+    const chg = ((base - last.close) / H) * 100;
+    $("chg").textContent = `${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%`; $("chg").style.color = chg >= 0 ? "var(--up)" : "var(--down)";
+    $("o").textContent = val(last.open); $("h").textContent = val(last.hi); $("l").textContent = val(last.lo); $("c").textContent = val(last.close);
+  }
+  const run = ms => { clearInterval(timer); timer = setInterval(() => { if (document.hidden) return; off += 1; if (off >= CW) { off = 0; next(); } draw(); }, ms); };
+  draw();
+  document.querySelectorAll("#tf button").forEach(b => b.onclick = () => {
+    document.querySelectorAll("#tf button").forEach(x => x.classList.toggle("on", x === b)); run(+b.dataset.ms);
+  });
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) run(110);
+}
+
+// ---- chain ----
+function loadEthers() {
+  return window.ethers ? Promise.resolve() : new Promise((ok, bad) => { const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"; s.onload = ok; s.onerror = bad; document.head.append(s); });
+}
+async function refreshLive() {
+  const { contract, provider, ethers } = chain;
+  const [info, paused, owner, held] = await Promise.all([Promise.all(L.map((_, i) => contract.levelInfo(i))), contract.paused(), contract.owner(), provider.getBalance(CONFIG.contractAddress)]);
+  state.minted = info.map(x => Number(x.minted)); state.paused = paused; state.owner = owner; state.held = +ethers.formatEther(held);
+  if (state.account) {
+    const n = Number(await contract.balanceOf(state.account));
+    state.owned = (await Promise.all(Array.from({ length: n }, (_, i) => contract.tokenOfOwnerByIndex(state.account, i)))).map(Number);
+  }
+  render();
+}
+async function readOnly() { // live numbers for visitors before any wallet is connected
+  try {
+    await loadEthers();
+    const ethers = window.ethers, provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl, CONFIG.chainId, { staticNetwork: ethers.Network.from(CONFIG.chainId) });
+    if (!chain) chain = { ethers, provider, signer: null, contract: new ethers.Contract(CONFIG.contractAddress, ABI, provider) };
+    for (let i = 0; ; i++) { // the public network address is slow at times: try a few times before complaining
+      try { return await refreshLive(); } catch (e) { if (i >= 3) throw e; await new Promise(r => setTimeout(r, 2500)); }
+    }
+  } catch (e) { toast("Could not reach Robinhood Chain. Check your connection and reload.", "var(--down)"); }
+}
+async function connect() {
+  if (!window.ethereum) return toast("No wallet found. Install a browser wallet first.", "var(--down)");
+  try {
+    if (!LIVE) { // demo mode: the wallet is only used to recognise the admin
+      state.account = (await window.ethereum.request({ method: "eth_requestAccounts" }))[0];
+      render(); return toast("Wallet connected. Mints stay pretend until a contract is set.");
+    }
+    await loadEthers();
+    const ethers = window.ethers, provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const chainId = "0x" + CONFIG.chainId.toString(16);
+    try { await provider.send("wallet_switchEthereumChain", [{ chainId }]); }
+    catch (e) { // wallet does not know the chain yet: add it
+      await provider.send("wallet_addEthereumChain", [{ chainId, chainName: CONFIG.chainName, rpcUrls: [CONFIG.rpcUrl],
+        blockExplorerUrls: [CONFIG.explorer], nativeCurrency: { name: "Ether", symbol: CONFIG.symbol, decimals: 18 } }]);
+    }
+    const signer = await provider.getSigner();
+    chain = { ethers, provider, signer, contract: new ethers.Contract(CONFIG.contractAddress, ABI, signer) };
+    state.account = await signer.getAddress();
+    await refreshLive();
+  } catch (e) {
+    const msg = String((e.info && e.info.error && e.info.error.message) || e.shortMessage || e.message || "");
+    if (/at least one account/i.test(msg)) toast("Your wallet has no account open. Open the wallet extension, unlock it, and add or select your wallet, then try again.", "var(--down)");
+    else if (e.code === "ACTION_REJECTED" || e.code === 4001 || /reject|denied/i.test(msg)) toast("The connection was cancelled in the wallet. Press Connect wallet again and approve it.", "var(--down)");
+    else toast("Could not connect: " + (e.shortMessage || e.message), "var(--down)");
+  }
+}
+async function buy(i) {
+  const n = qty[i];
+  if (LIVE) {
+    if (!chain || !chain.signer) return connect();
+    try {
+      const { price } = await chain.contract.levelInfo(i);
+      const tx = await chain.contract.mint(i, n, { value: price * BigInt(n) });
+      toast("Order sent. Waiting for confirmation…"); await tx.wait(); toast(`Filled: ${n} ${L[i].name} candle${n > 1 ? "s" : ""}. See your Portfolio.`); await refreshLive();
+    } catch (e) { toast("Order failed: " + (e.shortMessage || e.message), "var(--down)"); }
+    return;
+  }
+  if (state.paused) return toast("The market is closed.", "var(--down)");
+  for (let k = 0; k < n; k++) state.owned.push(L[i].firstId + state.minted[i]++);
+  state.held += L[i].price * n;
+  saveDemo(); render(); toast(`Filled (demo): ${n} ${L[i].name}. See your Portfolio.`);
+}
+async function ownerTx(name, send, done, demo) {
+  if (!LIVE) { demo(); saveDemo(); render(); return toast(done + " (demo)"); }
+  if (!chain || !chain.signer) return connect();
+  try { const tx = await send(chain.contract); toast(`${name} sent. Waiting for confirmation…`); await tx.wait(); toast(done); await refreshLive(); }
+  catch (e) { toast(`${name} failed: ` + (e.shortMessage || e.message), "var(--down)"); }
+}
+
+// Background: faint candlesticks drift through the page (green ones rise, red ones sink, gold ones race up)
+// while small embers float up from the bottom like sparks off a flame.
+function backdrop() {
+  const cv = $("bg"), ctx = cv.getContext("2d"), PX = 3;
+  const UP = ["#28d678", "#96ffbe"], DOWN = ["#f44254", "#ffa6ae"], GOLD = ["#f6c62e", "#fff4a0"];
+  let W, H, sticks, embers;
+  const stick = (y) => {
+    const r = Math.random(), kind = r < 0.06 ? "gold" : r < 0.53 ? "up" : "down";
+    return { x: Math.floor(Math.random() * W), y: y ?? Math.random() * H, h: 6 + Math.floor(Math.random() * 22), wick: 2 + Math.floor(Math.random() * 6), kind,
+      v: (kind === "gold" ? 0.55 : 0.12 + Math.random() * 0.3) * (kind === "down" ? 1 : -1), a: 0.1 + Math.random() * 0.22 };
+  };
+  const ember = () => ({ x: Math.random() * W, y: H + Math.random() * 20, v: 0.25 + Math.random() * 0.5, life: 1, sway: Math.random() * 6.28 });
+  function size() {
+    W = cv.width = Math.ceil(innerWidth / PX); H = cv.height = Math.ceil(innerHeight / PX);
+    sticks = Array.from({ length: Math.round((W * H) / 2600) }, () => stick());
+    embers = Array.from({ length: Math.round(W / 12) }, () => Object.assign(ember(), { y: Math.random() * H }));
+  }
+  function frame(move) {
+    ctx.clearRect(0, 0, W, H);
+    for (const s of sticks) {
+      if (move) { s.y += s.v; if (s.y < -s.h - 12) Object.assign(s, stick(H + 8)); if (s.y > H + 12) Object.assign(s, stick(-s.h - 8)); }
+      const [body, light] = s.kind === "gold" ? GOLD : s.kind === "up" ? UP : DOWN, y = Math.round(s.y);
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = body; ctx.fillRect(s.x + 1, y - s.wick, 1, s.h + s.wick * 2); ctx.fillRect(s.x, y, 3, s.h);
+      ctx.fillStyle = light; ctx.fillRect(s.x, y, 1, s.h);
+      ctx.globalAlpha = s.a * 1.6; ctx.fillStyle = s.kind === "gold" ? "#9fd2ff" : "#ffb04a"; ctx.fillRect(s.x + 1, y - s.wick - 1, 1, 1); // tiny flame
+    }
+    for (const e of embers) {
+      if (move) { e.y -= e.v; e.sway += 0.05; e.life -= 0.0016; if (e.y < -4 || e.life <= 0) Object.assign(e, ember()); }
+      ctx.globalAlpha = Math.max(0, Math.min(0.75, e.life * 0.8));
+      ctx.fillStyle = e.life > 0.6 ? "#ffd27a" : "#ff8a3d";
+      ctx.fillRect(Math.round(e.x + Math.sin(e.sway) * 2), Math.round(e.y), 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  size(); frame(false);
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { size(); frame(false); }, 200); });
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  setInterval(() => { if (!document.hidden) frame(true); }, 40);
+}
+backdrop();
+
+build();
+chart();
+document.querySelectorAll("[data-to]").forEach(b => b.onclick = () => $(b.dataset.to).scrollIntoView());
+$("connect").onclick = connect;
+$("a-launch").onclick = () => ownerTx("Launch", c => c.setPaused(false), "The market is open.", () => state.paused = false);
+$("a-stop").onclick = () => ownerTx("Stop", c => c.setPaused(true), "The market is closed.", () => state.paused = true);
+$("a-withdraw").onclick = () => ownerTx("Withdraw", c => c.withdraw(), "All mint money sent to your wallet.", () => state.held = 0);
+if (window.ethereum && window.ethereum.on) window.ethereum.on("accountsChanged", a => { state.account = a[0] || null; chain ? refreshLive() : render(); });
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  setInterval(() => { if (!document.hidden) { flame++; paintArt(); } }, 220);
+  setInterval(() => { if (!document.hidden) { showShape = (showShape + 1) % SHAPES.length; paintArt(); } }, 1600);
+}
+if (LIVE) {
+  $("demo").hidden = true;
+  $("contract-link").innerHTML = `Contract: <a href="${CONFIG.explorer}/address/${CONFIG.contractAddress}" target="_blank" rel="noopener">${short(CONFIG.contractAddress)} ↗</a>`;
+  readOnly(); setInterval(() => { if (chain) refreshLive().catch(() => {}); }, 20000);
+} else loadDemo();
+render();
+</script>
+</body>
+</html>
